@@ -1,7 +1,4 @@
-﻿using static ChessPog.ChessLogic;
-using Clr = ChessPog.Colors;
-
-namespace ChessPog {
+﻿namespace ChessPog {
     internal class ChessLogic {
         internal List<ChessPiece> Board = new();
         internal PieceColor ToMove;
