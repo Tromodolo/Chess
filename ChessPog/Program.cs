@@ -14,6 +14,8 @@ namespace ChessPog {
         static uint[] FrameBuffer = new uint[WindowWidth * WindowHeight];
         static bool Playing = true;
 
+        static ChessLogic Chess;
+
         static void Main(string[] args) {
             if (SDL_Init(SDL_INIT_VIDEO) < 0) {
                 Console.WriteLine($"There was an issue initializing  {SDL_GetError()}");
@@ -26,7 +28,7 @@ namespace ChessPog {
                 SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
                 WindowWidth * WindowSizeMultiplier, 
                 WindowHeight * WindowSizeMultiplier, 
-                SDL_WindowFlags.SDL_WINDOW_SHOWN // SDL_WindowFlags.SDL_WINDOW_RESIZABLE | 
+                SDL_WindowFlags.SDL_WINDOW_SHOWN
             );
 
             if (GameWindow == nint.Zero) {
@@ -36,7 +38,6 @@ namespace ChessPog {
 
             // Creates a new SDL hardware renderer using the default graphics device with VSYNC enabled.
             nint renderer = SDL_CreateRenderer(GameWindow, -1, SDL_RendererFlags.SDL_RENDERER_ACCELERATED);
-
             if (renderer == nint.Zero) {
                 Console.WriteLine($"There was an issue creating the renderer. {SDL_GetError()}");
                 return;
@@ -51,15 +52,15 @@ namespace ChessPog {
             );
             Renderer = renderer;
 
+            // Using a frame buffer as a span for *slightly* better performance 
             Span<uint> frameBufferSpan = new Span<uint>(FrameBuffer);
+
+            Chess = new ChessLogic();
             Chess.LoadFromFENString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-            foreach (var piece in Chess.Board) {
-                piece.JustMoved = false;
-                piece.GenerateMoves();
-            }
+            Chess.GenerateMoves();
 
             while (Playing) {
-                PollEvents();   
+                HandleEventLoop();   
 
                 if (Chess.CanRedraw) {
                     RenderBoard(ref frameBufferSpan);
@@ -72,19 +73,19 @@ namespace ChessPog {
                 DrawText(ref frameBufferSpan, "lily gay", 64, 0, Colors.White);
                 DrawText(ref frameBufferSpan, "<3", 64, 8, Colors.White);
                 DrawText(ref frameBufferSpan, "To move", 64, 16, Colors.White);
-                DrawText(ref frameBufferSpan, Chess.ToMove == Chess.Side.White ? "White" : "Black", 64, 24, Colors.White, true);
+                DrawText(ref frameBufferSpan, Chess.ToMove == ChessLogic.PieceColor.White ? "White" : "Black", 64, 24, Colors.White, true);
 
                 if (Chess.GameEnded) {
                     DrawText(ref frameBufferSpan, "Game End", 64, 40, Colors.White, true);
                     string resultText = "";
                     switch (Chess.Result) {
-                        case Chess.GameResult.WhiteWin:
+                        case ChessLogic.GameResult.WhiteWin:
                             resultText = "* White";
                             break;
-                        case Chess.GameResult.BlackWin:
+                        case ChessLogic.GameResult.BlackWin:
                             resultText = "* Black";
                             break;
-                        case Chess.GameResult.Draw:
+                        case ChessLogic.GameResult.Draw:
                             resultText = "Draw";
                             break;
                     }
@@ -95,7 +96,7 @@ namespace ChessPog {
             }
         }
 
-        private static void PollEvents() {
+        private static void HandleEventLoop() {
             while (SDL_PollEvent(out var e) == 1) {
                 switch (e.type) {
                     case SDL_EventType.SDL_MOUSEBUTTONDOWN:
@@ -150,33 +151,33 @@ namespace ChessPog {
         private static void HandleClick(int x, int y) {
             var file = x / SpriteWidth / WindowSizeMultiplier;
             var rank = y / SpriteWidth / WindowSizeMultiplier;
-            Chess.PressSquare(file, rank);
+            Chess.OnSquarePressed(file, rank);
         }
 
-        private static void RenderPiece(ref Span<uint> buffer, Chess.Piece piece, int file, int rank) {
+        private static void RenderPiece(ref Span<uint> buffer, ChessPiece piece, int file, int rank) {
             Colors.ColorSpec color = Colors.White;
-            if (piece.Side == Chess.Side.Black) {
+            if (piece.Color == ChessLogic.PieceColor.Black) {
                 color = Colors.Black;
             }
 
             var pieceChar = "";
             switch(piece.Type) {
-                case Chess.PieceType.Pawn:
+                case ChessLogic.PieceType.Pawn:
                     pieceChar = "P";
                     break;
-                case Chess.PieceType.Knight:
+                case ChessLogic.PieceType.Knight:
                     pieceChar = "N";
                     break;
-                case Chess.PieceType.Bishop:
+                case ChessLogic.PieceType.Bishop:
                     pieceChar = "B";
                     break;
-                case Chess.PieceType.Rook:
+                case ChessLogic.PieceType.Rook:
                     pieceChar = "R";
                     break;
-                case Chess.PieceType.Queen:
+                case ChessLogic.PieceType.Queen:
                     pieceChar = "Q";
                     break;
-                case Chess.PieceType.King:
+                case ChessLogic.PieceType.King:
                     pieceChar = "K";
                     break;
             }
@@ -195,15 +196,15 @@ namespace ChessPog {
             //DrawSprite(ref buffer, sprite, boardX * SpriteWidth, boardY * SpriteWidth, SpriteWidth, SpriteWidth);
         }
 
-        private static void DrawSprite(ref Span<uint> buffer, Colors.ColorSpec[] sprite, int posX, int posY, int width, int height) {
-            for (var x = 0; x < 8; x++) {
-                for (var y = 0; y < 8; y++) {
-                    var pixel = y * 8 + x;
+        //private static void DrawSprite(ref Span<uint> buffer, Colors.ColorSpec[] sprite, int posX, int posY, int width, int height) {
+        //    for (var x = 0; x < 8; x++) {
+        //        for (var y = 0; y < 8; y++) {
+        //            var pixel = y * 8 + x;
 
-                    SetPixel(ref buffer, posX + x, posY + y, sprite[pixel]);
-                }
-            }
-        }
+        //            SetPixel(ref buffer, posX + x, posY + y, sprite[pixel]);
+        //        }
+        //    }
+        //}
 
         private static void DrawText(ref Span<uint> buffer, string text, int textX, int textY, Colors.ColorSpec color, bool clearBehind = false) {
             text = text.ToUpper();
@@ -258,6 +259,10 @@ namespace ChessPog {
             ] = (uint)((color.r << 16) | (color.g << 8 | (color.b << 0)));
         }
 
+        /// <summary>
+        /// Copy the frame buffer to the SDL2 texture, and then copy that texture onto the screen
+        /// </summary>
+        /// <param name="buffer"></param>
         private static void DrawFrame(ref Span<uint> buffer) {
             unsafe {
                 SDL_Rect rect;
