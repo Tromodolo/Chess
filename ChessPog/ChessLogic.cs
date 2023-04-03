@@ -441,13 +441,13 @@
                     if (Board.Any(x => x.File == piece.File - 1 && x.Rank == piece.Rank && x.Color != piece.Color)) {
                         var comparisonPiece = Board.FirstOrDefault(x => x.File == piece.File - 1 && x.Rank == piece.Rank && x.Color != piece.Color);
                         if (comparisonPiece.TimesMoved == 1 && Math.Abs(comparisonPiece.MovedRanks) == 2 && comparisonPiece.JustMoved) {
-                            TryAddMove(piece, piece.File - 1, compareRank, piece);
+                            TryAddMove(piece, comparisonPiece.File, compareRank, comparisonPiece);
                         }
                     }
                     if (Board.Any(x => x.File == piece.File + 1 && x.Rank == piece.Rank && x.Color != piece.Color)) {
                         var comparisonPiece = Board.FirstOrDefault(x => x.File == piece.File + 1 && x.Rank == piece.Rank && x.Color != piece.Color);
                         if (comparisonPiece.TimesMoved == 1 && Math.Abs(comparisonPiece.MovedRanks) == 2 && comparisonPiece.JustMoved) {
-                            TryAddMove(piece, piece.File + 1, compareRank, piece);
+                            TryAddMove(piece, comparisonPiece.File, compareRank, comparisonPiece);
                         }
                     }
 
