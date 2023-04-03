@@ -70,14 +70,8 @@ namespace ChessPog {
                     RenderToMove();
                     RenderGameEnd();
                     RenderTakenPieces();
+                    RenderControls();
                 }
-
-                var textPadding = 8;
-                var textStartX = WindowWidth / 2 + textPadding;
-
-                // Misc texts
-                DrawText("Press 'r' to restart", textStartX, textPadding, Colors.White);
-                //DrawText("lily = big dumb", textStartX, FontSize + textPadding, Colors.White);
 
                 DrawFrame();
             }
@@ -87,9 +81,23 @@ namespace ChessPog {
             while (SDL_PollEvent(out var e) == 1) {
                 switch (e.type) {
                     case SDL_EventType.SDL_KEYDOWN:
-                        if (e.key.keysym.sym == SDL_Keycode.SDLK_r) {
-                            Chess.LoadFromFENString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-                            Chess.GenerateMoves();
+                        switch (e.key.keysym.sym) {
+                            case SDL_Keycode.SDLK_r:
+                                Chess.LoadFromFENString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+                                Chess.GenerateMoves();
+                                break;
+                            case SDL_Keycode.SDLK_1:
+                                Chess.SetPromotionType(ChessLogic.PieceType.Queen);
+                                break;
+                            case SDL_Keycode.SDLK_2:
+                                Chess.SetPromotionType(ChessLogic.PieceType.Rook);
+                                break;
+                            case SDL_Keycode.SDLK_3:
+                                Chess.SetPromotionType(ChessLogic.PieceType.Bishop);
+                                break;
+                            case SDL_Keycode.SDLK_4:
+                                Chess.SetPromotionType(ChessLogic.PieceType.Knight);
+                                break;
                         }
                         break;
                     case SDL_EventType.SDL_MOUSEBUTTONDOWN:
@@ -108,13 +116,23 @@ namespace ChessPog {
             Chess.OnSquarePressed(file, rank);
         }
 
+        private static void RenderControls() {
+            var textPadding = 8;
+            var textStartX = WindowWidth / 2 + textPadding;
+
+            DrawText("Press 'r' to restart", textStartX, textPadding, Colors.White);
+            DrawText($"Pawns promote to: {Chess.PromotionType}       ", textStartX, textPadding + FontSize, Colors.White, true);
+            DrawText("Press 1=Queen  2=Rook", textStartX, textPadding + FontSize * 2, Colors.White);
+            DrawText("      3=Bishop 4=Knight", textStartX, textPadding + FontSize * 3, Colors.White);
+        }
+
         private static void RenderToMove() {
             var textPadding = FontSize / 2;
             var textStartX = WindowWidth / 2 + textPadding;
 
             var toMoveString = Chess.ToMove == ChessLogic.PieceColor.White ? "White" : "Black";
-            DrawText("To move", textStartX, FontSize * 4, Colors.White, fontSize: FontSize * 2);
-            DrawText(toMoveString, textStartX, FontSize * 6, Colors.White, true, FontSize * 2);
+            DrawText("To move", textStartX, FontSize * 6, Colors.White, fontSize: FontSize * 2);
+            DrawText(toMoveString, textStartX, FontSize * 8, Colors.White, true, FontSize * 2);
         }
 
         private static void RenderGameEnd() {
@@ -134,7 +152,6 @@ namespace ChessPog {
                         resultText = "Draw";
                         break;
                 }
-                DrawText("Game Ended", textStartX, FontSize * 10, Colors.White, true, FontSize * 2);
                 DrawText(resultText, textStartX, FontSize * 12, Colors.White, true, FontSize * 2);
             }
         }

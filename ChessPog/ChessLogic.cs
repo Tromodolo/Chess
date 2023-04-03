@@ -22,6 +22,8 @@
         internal bool GameEnded;
         internal GameResult Result;
 
+        internal PieceType PromotionType;
+
         // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
         /*
          * A FEN record defines a particular game position, all in one text line and using only the ASCII character set. A text file with only FEN data records should use the filename extension .fen.[4]
@@ -50,6 +52,7 @@
             BlackTaken.Clear();
             ToMove = PieceColor.White;
             GameEnded = false;
+            PromotionType = PieceType.Queen;
 
             int rank = 0;
             int file = 0;
@@ -83,10 +86,12 @@
                         File = file,
                         Rank = rank,
                     });
+                    file++;
                 } else if (character.Equals(' ')) {
                     break;
+                } else {
+                    file++;
                 }
-                file++;
             }
         }
 
@@ -104,6 +109,10 @@
                     GenerateGeneralMoves(piece);
                 }
             }
+        }
+
+        internal void SetPromotionType(PieceType type) {
+            PromotionType = type;
         }
 
         internal void OnSquarePressed(int file, int rank) {
@@ -180,10 +189,9 @@
             move.Piece.TimesMoved++;
             move.Piece.JustMoved = true;
 
-            // TODO: Make sure to allow pawns to upgrade into stuff that isn't just a queen
             if (move.Piece.Type == PieceType.Pawn && 
                 (move.Rank == 0 || move.Rank == 7)) {
-                move.Piece.Type = PieceType.Queen;
+                move.Piece.Type = PromotionType;
             }
 
             if (ToMove == PieceColor.White) {
