@@ -45,6 +45,12 @@
            Source: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
          */
         internal void LoadFromFENString(string fen) {
+            Board.Clear();
+            WhiteTaken.Clear();
+            BlackTaken.Clear();
+            ToMove = PieceColor.White;
+            GameEnded = false;
+
             int rank = 0;
             int file = 0;
             foreach (var character in fen) {
@@ -543,17 +549,13 @@
             Black
         }
 
-        //internal class Sprites {
-        //    internal static Clr.ColorSpec[] Rook = new Clr.ColorSpec[] {
-        //        Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty,
-        //        Clr.Empty, Clr.Black, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Black, Clr.Empty,
-        //        Clr.Empty, Clr.Empty, Clr.Black, Clr.Empty, Clr.Empty, Clr.Black, Clr.Empty, Clr.Empty,
-        //        Clr.Empty, Clr.Empty, Clr.Empty, Clr.Black, Clr.Black, Clr.Empty, Clr.Empty, Clr.Empty,
-        //        Clr.Empty, Clr.Empty, Clr.Empty, Clr.Black, Clr.Black, Clr.Empty, Clr.Empty, Clr.Empty,
-        //        Clr.Empty, Clr.Empty, Clr.Black, Clr.Empty, Clr.Empty, Clr.Black, Clr.Empty, Clr.Empty,
-        //        Clr.Empty, Clr.Black, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Black, Clr.Empty,
-        //        Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty, Clr.Empty,
-        //    };
-        //}   
+        static internal class Sprites {
+            static internal ulong Pawn = 0x183C18183C7E00;
+            static internal ulong Rook = 0x5A7E3C3C3C3C7E00;
+            static internal ulong Bishop = 0x183C3438183C7E00;
+            static internal ulong Knight = 0x183C7E1E0E1C3C00;
+            static internal ulong King = 0x183C99DBE77E3C00;
+            static internal ulong Queen = 0x5A5A2418183C7E00;
+        }   
     }
 }

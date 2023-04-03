@@ -67,28 +67,17 @@ namespace ChessPog {
                     RenderSelectedPieceMoves();
                     RenderMovement();
                     RenderGameBoard();
+                    RenderToMove();
+                    RenderGameEnd();
+                    RenderTakenPieces();
                 }
 
-                DrawText("lily = big dumb", WindowWidth / 2, FontSize * 0, Colors.White);
-                DrawText("To move", WindowWidth / 2, FontSize * 2, Colors.White);
-                DrawText(Chess.ToMove == ChessLogic.PieceColor.White ? "White" : "Black", WindowWidth / 2, FontSize * 3, Colors.White, true);
+                var textPadding = 8;
+                var textStartX = WindowWidth / 2 + textPadding;
 
-                if (Chess.GameEnded) {
-                    DrawText("Game End", WindowWidth / 2, FontSize * 5, Colors.White, true);
-                    string resultText = "";
-                    switch (Chess.Result) {
-                        case ChessLogic.GameResult.WhiteWin:
-                            resultText = "* White won";
-                            break;
-                        case ChessLogic.GameResult.BlackWin:
-                            resultText = "* Black won";
-                            break;
-                        case ChessLogic.GameResult.Draw:
-                            resultText = "Draw";
-                            break;
-                    }
-                    DrawText(resultText, WindowWidth / 2, FontSize * 6, Colors.White, true);
-                }
+                // Misc texts
+                DrawText("Press 'r' to restart", textStartX, textPadding, Colors.White);
+                //DrawText("lily = big dumb", textStartX, FontSize + textPadding, Colors.White);
 
                 DrawFrame();
             }
@@ -97,6 +86,12 @@ namespace ChessPog {
         private static void HandleEventLoop() {
             while (SDL_PollEvent(out var e) == 1) {
                 switch (e.type) {
+                    case SDL_EventType.SDL_KEYDOWN:
+                        if (e.key.keysym.sym == SDL_Keycode.SDLK_r) {
+                            Chess.LoadFromFENString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+                            Chess.GenerateMoves();
+                        }
+                        break;
                     case SDL_EventType.SDL_MOUSEBUTTONDOWN:
                         HandleClick(e.button.x, e.button.y);
                         break;
@@ -105,6 +100,98 @@ namespace ChessPog {
                         break;
                 }
             }
+        }
+
+        private static void HandleClick(int x, int y) {
+            var file = x / SpriteWidth / WindowSizeMultiplier;
+            var rank = y / SpriteWidth / WindowSizeMultiplier;
+            Chess.OnSquarePressed(file, rank);
+        }
+
+        private static void RenderToMove() {
+            var textPadding = FontSize / 2;
+            var textStartX = WindowWidth / 2 + textPadding;
+
+            var toMoveString = Chess.ToMove == ChessLogic.PieceColor.White ? "White" : "Black";
+            DrawText("To move", textStartX, FontSize * 4, Colors.White, fontSize: FontSize * 2);
+            DrawText(toMoveString, textStartX, FontSize * 6, Colors.White, true, FontSize * 2);
+        }
+
+        private static void RenderGameEnd() {
+            var textPadding = FontSize / 2;
+            var textStartX = WindowWidth / 2 + textPadding;
+
+            if (Chess.GameEnded) {
+                string resultText = "";
+                switch (Chess.Result) {
+                    case ChessLogic.GameResult.WhiteWin:
+                        resultText = "* White won";
+                        break;
+                    case ChessLogic.GameResult.BlackWin:
+                        resultText = "* Black won";
+                        break;
+                    case ChessLogic.GameResult.Draw:
+                        resultText = "Draw";
+                        break;
+                }
+                DrawText("Game Ended", textStartX, FontSize * 10, Colors.White, true, FontSize * 2);
+                DrawText(resultText, textStartX, FontSize * 12, Colors.White, true, FontSize * 2);
+            }
+        }
+
+        private static void RenderTakenPieces() {
+            var textPadding = FontSize / 2;
+            var textStartX = WindowWidth / 2 + textPadding;
+
+            Chess.WhiteTaken.Sort();
+            Chess.BlackTaken.Sort();
+
+            var drawTakenSprites = (int y, List<ChessLogic.PieceType> list) => {
+                int xOffset = 0;
+
+                foreach (var type in list) {
+                    ulong sprite;
+                    switch (type) {
+                        case ChessLogic.PieceType.Pawn:
+                            sprite = ChessLogic.Sprites.Pawn;
+                            break;
+                        case ChessLogic.PieceType.Knight:
+                            sprite = ChessLogic.Sprites.Knight;
+                            break;
+                        case ChessLogic.PieceType.Bishop:
+                            sprite = ChessLogic.Sprites.Bishop;
+                            break;
+                        case ChessLogic.PieceType.Rook:
+                            sprite = ChessLogic.Sprites.Rook;
+                            break;
+                        case ChessLogic.PieceType.Queen:
+                            sprite = ChessLogic.Sprites.Queen;
+                            break;
+                        case ChessLogic.PieceType.King:
+                            sprite = ChessLogic.Sprites.King;
+                            break;
+                        default:
+                            sprite = 0;
+                            break;
+                    }
+
+                    DrawData(sprite, textStartX + xOffset, y, Colors.White, true, FontSize * 2);
+
+                    // Add x offset on every drawn sprite
+                    // And if offset is large enough, split to second row
+                    xOffset += FontSize * 2;
+                    if (xOffset >= FontSize * 16) {
+                        xOffset = 0;
+                        y += FontSize * 2;
+                    }
+                }
+            };
+
+            DrawText("White's Taken:", textStartX, FontSize * 16, Colors.White, fontSize: FontSize * 2);
+            drawTakenSprites(FontSize * 18, Chess.WhiteTaken);
+
+            DrawText("Black's Taken:", textStartX, FontSize * 24, Colors.White, fontSize: FontSize * 2);
+            drawTakenSprites(FontSize * 26, Chess.BlackTaken);
         }
 
         private static void RenderSelectedPiece() {
@@ -146,102 +233,92 @@ namespace ChessPog {
             }
         }
 
-        private static void HandleClick(int x, int y) {
-            var file = x / SpriteWidth / WindowSizeMultiplier;
-            var rank = y / SpriteWidth / WindowSizeMultiplier;
-            Chess.OnSquarePressed(file, rank);
-        }
-
         private static void RenderPiece(ChessPiece piece, int file, int rank) {
-            Colors.ColorSpec color = Colors.White;
+            Colors.ColorSpec color = Colors.Beige;
             if (piece.Color == ChessLogic.PieceColor.Black) {
                 color = Colors.Black;
             }
 
-            var pieceChar = "";
+            ulong sprite;
             switch(piece.Type) {
                 case ChessLogic.PieceType.Pawn:
-                    pieceChar = "P";
+                    sprite = ChessLogic.Sprites.Pawn;
                     break;
                 case ChessLogic.PieceType.Knight:
-                    pieceChar = "N";
+                    sprite = ChessLogic.Sprites.Knight;
                     break;
                 case ChessLogic.PieceType.Bishop:
-                    pieceChar = "B";
+                    sprite = ChessLogic.Sprites.Bishop;
                     break;
                 case ChessLogic.PieceType.Rook:
-                    pieceChar = "R";
+                    sprite = ChessLogic.Sprites.Rook;
                     break;
                 case ChessLogic.PieceType.Queen:
-                    pieceChar = "Q";
+                    sprite = ChessLogic.Sprites.Queen;
                     break;
                 case ChessLogic.PieceType.King:
-                    pieceChar = "K";
+                    sprite = ChessLogic.Sprites.King;
+                    break;
+                default:
+                    sprite = 0;
                     break;
             }
 
-            DrawText(pieceChar, file * SpriteWidth, rank * SpriteWidth, color, false, SpriteWidth);
-
-            //Colors.ColorSpec[] sprite;
-            //switch (piece) {
-            //    default:
-            //    case Chess.PieceType.Rook: {
-            //        sprite = Chess.Sprites.Rook;
-            //        break;
-            //    }
-            //}
-
-            //DrawSprite(ref buffer, sprite, boardX * SpriteWidth, boardY * SpriteWidth, SpriteWidth, SpriteWidth);
+            DrawData(sprite, file * SpriteWidth, rank * SpriteWidth, color, size: SpriteWidth);
         }
-
-        //private static void DrawSprite(ref Span<uint> buffer, Colors.ColorSpec[] sprite, int posX, int posY, int width, int height) {
-        //    for (var x = 0; x < 8; x++) {
-        //        for (var y = 0; y < 8; y++) {
-        //            var pixel = y * 8 + x;
-
-        //            SetPixel(ref buffer, posX + x, posY + y, sprite[pixel]);
-        //        }
-        //    }
-        //}
 
         private static void DrawText(string text, int textX, int textY, Colors.ColorSpec color, bool clearBehind = false, int fontSize = FontSize) {
             text = text.ToUpper();
 
             int xOffset = 0;
+            // The font is offset by 1 pixel,
+            // possibly more if fontsize isnt 8
+            var yOffset = fontSize / 8;
+            textY += yOffset;
+
             foreach (char character in text) {
                 // Fetch font character from array
                 // it is stores as uint64, and every bit represents a pixel
                 var fontCharacter = Font.Data[character];
 
-                for (var yPos = 0; yPos < fontSize; yPos++) {
-                    for (var xPos = 0; xPos < fontSize; xPos++) {
-                        // Don't forget to add positions + offset
-                        var renderAtX = textX + xPos + xOffset;
-                        var renderAtY = textY + yPos;
+                DrawData(fontCharacter, textX + xOffset, textY, color, clearBehind, fontSize);
+             
+                xOffset += fontSize;
+            }
+        }
 
-                        // The font is offset by 1 pixel,
-                        // possibly more if fontsize isnt 8
-                        var offset = fontSize / 8;
-                        renderAtY += offset;
+        /// <summary>
+        /// Takes in a ulong and iterates through the binary for the values to get sprite shape
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="color"></param>
+        /// <param name="clearBehind"></param>
+        /// <param name="size"></param>
+        private static void DrawData(ulong data, int x, int y, Colors.ColorSpec color, bool clearBehind = false, int size = FontSize) {
+            for (var yPos = 0; yPos < size; yPos++) {
+                for (var xPos = 0; xPos < size; xPos++) {
+                    // Don't forget to add positions + offset
+                    var renderAtX = x + xPos;
+                    var renderAtY = y + yPos;
 
-                        // In cases where font size is not 8 pixels, translate the iterated
-                        // fontsize and map it to a position in the original 8x8 sprite
-                        var translatedX = 8 * xPos / fontSize;
-                        var translatedY = 8 * yPos / fontSize;
+                    // In cases where data is not 8 pixels, translate the iterated
+                    // size and map it to a position in the original 8x8 sprite
+                    var translatedX = 8 * xPos / size;
+                    var translatedY = 8 * yPos / size;
 
-                        // Get which pixel to render and then if it is 1, render it
-                        // This was hellish to get to work without inverted text
-                        var bitPos = translatedY * 8 + translatedX;
-                        if (((fontCharacter >>> (63 - bitPos)) & 1) == 1) {
-                            SetPixel(renderAtX, renderAtY, color);
-                        } else {
-                            if (clearBehind) {
-                                SetPixel(renderAtX, renderAtY, Colors.Black);
-                            }
+                    // Get which pixel to render and then if it is 1, render it
+                    // This was hellish to get to work without inverted text
+                    var bitPos = translatedY * 8 + translatedX;
+                    if (((data >>> (63 - bitPos)) & 1) == 1) {
+                        SetPixel(renderAtX, renderAtY, color);
+                    } else {
+                        if (clearBehind) {
+                            SetPixel(renderAtX, renderAtY, Colors.Black);
                         }
                     }
                 }
-                xOffset += fontSize;
             }
         }
 

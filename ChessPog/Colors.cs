@@ -32,7 +32,7 @@
         internal static ColorSpec Gray = new ColorSpec(128, 128, 128);
         internal static ColorSpec Green = new ColorSpec(118, 150, 86);
         internal static ColorSpec Tan = new ColorSpec(238, 238, 210);
-        internal static ColorSpec Beige = new ColorSpec(250, 235, 215);
+        internal static ColorSpec Beige = new ColorSpec(219, 167, 95);
         internal static ColorSpec Orange = new ColorSpec(218, 129, 85);
         internal static ColorSpec Yellow = new ColorSpec(218, 194, 85);
     }
