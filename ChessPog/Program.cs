@@ -6,10 +6,12 @@ namespace ChessPog {
         static nint Texture;
         static nint Renderer;
 
-        const int WindowWidth = 128;
-        const int WindowHeight = 64;
-        const int WindowSizeMultiplier = 6;
-        const int SpriteWidth = 8;
+        const int WindowWidth = 1024;
+        const int WindowHeight = 512;
+        const int WindowSizeMultiplier = 1;
+
+        const int SpriteWidth = 64;
+        const int FontSize = 16;
 
         static uint[] FrameBuffer = new uint[WindowWidth * WindowHeight];
         static bool Playing = true;
@@ -52,9 +54,6 @@ namespace ChessPog {
             );
             Renderer = renderer;
 
-            // Using a frame buffer as a span for *slightly* better performance 
-            Span<uint> frameBufferSpan = new Span<uint>(FrameBuffer);
-
             Chess = new ChessLogic();
             Chess.LoadFromFENString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
             Chess.GenerateMoves();
@@ -63,36 +62,35 @@ namespace ChessPog {
                 HandleEventLoop();   
 
                 if (Chess.CanRedraw) {
-                    RenderBoard(ref frameBufferSpan);
-                    RenderSelectedPiece(ref frameBufferSpan);
-                    RenderSelectedPieceMoves(ref frameBufferSpan);
-                    RenderMovement(ref frameBufferSpan);
-                    RenderGameBoard(ref frameBufferSpan);
+                    RenderBoard();
+                    RenderSelectedPiece();
+                    RenderSelectedPieceMoves();
+                    RenderMovement();
+                    RenderGameBoard();
                 }
 
-                DrawText(ref frameBufferSpan, "lily gay", 64, 0, Colors.White);
-                DrawText(ref frameBufferSpan, "<3", 64, 8, Colors.White);
-                DrawText(ref frameBufferSpan, "To move", 64, 16, Colors.White);
-                DrawText(ref frameBufferSpan, Chess.ToMove == ChessLogic.PieceColor.White ? "White" : "Black", 64, 24, Colors.White, true);
+                DrawText("lily = big dumb", WindowWidth / 2, FontSize * 0, Colors.White);
+                DrawText("To move", WindowWidth / 2, FontSize * 2, Colors.White);
+                DrawText(Chess.ToMove == ChessLogic.PieceColor.White ? "White" : "Black", WindowWidth / 2, FontSize * 3, Colors.White, true);
 
                 if (Chess.GameEnded) {
-                    DrawText(ref frameBufferSpan, "Game End", 64, 40, Colors.White, true);
+                    DrawText("Game End", WindowWidth / 2, FontSize * 5, Colors.White, true);
                     string resultText = "";
                     switch (Chess.Result) {
                         case ChessLogic.GameResult.WhiteWin:
-                            resultText = "* White";
+                            resultText = "* White won";
                             break;
                         case ChessLogic.GameResult.BlackWin:
-                            resultText = "* Black";
+                            resultText = "* Black won";
                             break;
                         case ChessLogic.GameResult.Draw:
                             resultText = "Draw";
                             break;
                     }
-                    DrawText(ref frameBufferSpan, resultText, 64, 48, Colors.White, true);
+                    DrawText(resultText, WindowWidth / 2, FontSize * 6, Colors.White, true);
                 }
 
-                DrawFrame(ref frameBufferSpan);
+                DrawFrame();
             }
         }
 
@@ -109,42 +107,42 @@ namespace ChessPog {
             }
         }
 
-        private static void RenderSelectedPiece(ref Span<uint> buffer) {
+        private static void RenderSelectedPiece() {
             if (Chess.PickedUp != null) {
-                DrawSquare(ref buffer, Chess.PickedUp.File * SpriteWidth, Chess.PickedUp.Rank * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Orange);
+                DrawSquare(Chess.PickedUp.File * SpriteWidth, Chess.PickedUp.Rank * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Orange);
             }
         }
 
-        private static void RenderSelectedPieceMoves(ref Span<uint> buffer) {
+        private static void RenderSelectedPieceMoves() {
             if (Chess.PickedUp != null) {
                 foreach (var move in Chess.PickedUp.Moves) {
-                    DrawSquare(ref buffer, move.File * SpriteWidth, move.Rank * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Orange);
+                    DrawSquare(move.File * SpriteWidth, move.Rank * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Orange);
                 }
             }
         }
 
-        private static void RenderMovement(ref Span<uint> buffer) {
+        private static void RenderMovement() {
             if (Chess.MovedFromX != null && Chess.MovedFromY != null) {
-                DrawSquare(ref buffer, Chess.MovedFromX.Value * SpriteWidth, Chess.MovedFromY.Value * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Yellow);
+                DrawSquare(Chess.MovedFromX.Value * SpriteWidth, Chess.MovedFromY.Value * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Yellow);
             }
             if (Chess.MovedToX != null && Chess.MovedToY != null) {
-                DrawSquare(ref buffer, Chess.MovedToX.Value * SpriteWidth, Chess.MovedToY.Value * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Yellow);
+                DrawSquare(Chess.MovedToX.Value * SpriteWidth, Chess.MovedToY.Value * SpriteWidth, SpriteWidth, SpriteWidth, Colors.Yellow);
             }
         }
 
-        private static void RenderBoard(ref Span<uint> buffer) {
+        private static void RenderBoard() {
             for (var x = 0; x < 8; x++) {
                 for (var y = 0; y < 8; y++) {
                     var tile = (x + y) % 2 == 0 ? Colors.Tan : Colors.Green;
 
-                    DrawSquare(ref buffer, x * SpriteWidth, y * SpriteWidth, SpriteWidth, SpriteWidth, tile);
+                    DrawSquare(x * SpriteWidth, y * SpriteWidth, SpriteWidth, SpriteWidth, tile);
                 }
             }
         }
 
-        private static void RenderGameBoard(ref Span<uint> buffer) {
+        private static void RenderGameBoard() {
             foreach (var piece in Chess.Board) {
-                RenderPiece(ref buffer, piece, piece.File, piece.Rank);
+                RenderPiece(piece, piece.File, piece.Rank);
             }
         }
 
@@ -154,7 +152,7 @@ namespace ChessPog {
             Chess.OnSquarePressed(file, rank);
         }
 
-        private static void RenderPiece(ref Span<uint> buffer, ChessPiece piece, int file, int rank) {
+        private static void RenderPiece(ChessPiece piece, int file, int rank) {
             Colors.ColorSpec color = Colors.White;
             if (piece.Color == ChessLogic.PieceColor.Black) {
                 color = Colors.Black;
@@ -182,7 +180,7 @@ namespace ChessPog {
                     break;
             }
 
-            DrawText(ref buffer, pieceChar, file * SpriteWidth, rank * SpriteWidth, color);
+            DrawText(pieceChar, file * SpriteWidth, rank * SpriteWidth, color, false, SpriteWidth);
 
             //Colors.ColorSpec[] sprite;
             //switch (piece) {
@@ -206,7 +204,7 @@ namespace ChessPog {
         //    }
         //}
 
-        private static void DrawText(ref Span<uint> buffer, string text, int textX, int textY, Colors.ColorSpec color, bool clearBehind = false) {
+        private static void DrawText(string text, int textX, int textY, Colors.ColorSpec color, bool clearBehind = false, int fontSize = FontSize) {
             text = text.ToUpper();
 
             int xOffset = 0;
@@ -215,37 +213,47 @@ namespace ChessPog {
                 // it is stores as uint64, and every bit represents a pixel
                 var fontCharacter = Font.Data[character];
 
-                for (var yPos = 0; yPos < 8; yPos++) {
-                    for (var xPos = 0; xPos < 8; xPos++) {
+                for (var yPos = 0; yPos < fontSize; yPos++) {
+                    for (var xPos = 0; xPos < fontSize; xPos++) {
                         // Don't forget to add positions + offset
                         var renderAtX = textX + xPos + xOffset;
-                        var renderAtY = textY + yPos + 1; // Added 1 cause font is like offset by 1
+                        var renderAtY = textY + yPos;
+
+                        // The font is offset by 1 pixel,
+                        // possibly more if fontsize isnt 8
+                        var offset = fontSize / 8;
+                        renderAtY += offset;
+
+                        // In cases where font size is not 8 pixels, translate the iterated
+                        // fontsize and map it to a position in the original 8x8 sprite
+                        var translatedX = 8 * xPos / fontSize;
+                        var translatedY = 8 * yPos / fontSize;
 
                         // Get which pixel to render and then if it is 1, render it
                         // This was hellish to get to work without inverted text
-                        var bitPos = yPos * 8 + xPos;
+                        var bitPos = translatedY * 8 + translatedX;
                         if (((fontCharacter >>> (63 - bitPos)) & 1) == 1) {
-                            SetPixel(ref buffer, renderAtX, renderAtY, color);
+                            SetPixel(renderAtX, renderAtY, color);
                         } else {
                             if (clearBehind) {
-                                SetPixel(ref buffer, renderAtX, renderAtY, Colors.Black);
+                                SetPixel(renderAtX, renderAtY, Colors.Black);
                             }
                         }
                     }
                 }
-                xOffset += 8;
+                xOffset += fontSize;
             }
         }
 
-        private static void DrawSquare(ref Span<uint> buffer, int squareX, int squareY, int width, int height, Colors.ColorSpec color) {
+        private static void DrawSquare(int squareX, int squareY, int width, int height, Colors.ColorSpec color) {
             for (var widthX = 0; widthX < width; widthX++) {
                 for (var heightY = 0; heightY < height; heightY++) {
-                    SetPixel(ref buffer, widthX + squareX, heightY + squareY, color);
+                    SetPixel(widthX + squareX, heightY + squareY, color);
                 }
             }
         }
 
-        private static void SetPixel(ref Span<uint> buffer, int x, int y, Colors.ColorSpec color) {
+        private static void SetPixel(int x, int y, Colors.ColorSpec color) {
             if (x < 0 || x > WindowWidth || y < 0 || y >= WindowHeight) {
                 return;
             }
@@ -253,7 +261,7 @@ namespace ChessPog {
                 return;
             }
 
-            buffer[
+            FrameBuffer[
                 x +
                 (y * WindowWidth)
             ] = (uint)((color.r << 16) | (color.g << 8 | (color.b << 0)));
@@ -263,7 +271,7 @@ namespace ChessPog {
         /// Copy the frame buffer to the SDL2 texture, and then copy that texture onto the screen
         /// </summary>
         /// <param name="buffer"></param>
-        private static void DrawFrame(ref Span<uint> buffer) {
+        private static void DrawFrame() {
             unsafe {
                 SDL_Rect rect;
                 rect.w = WindowWidth * WindowSizeMultiplier;
@@ -271,7 +279,7 @@ namespace ChessPog {
                 rect.x = 0;
                 rect.y = 0;
 
-                fixed (uint* pArray = buffer) {
+                fixed (uint* pArray = FrameBuffer) {
                     var intPtr = new nint(pArray);
 
                     _ = SDL_UpdateTexture(Texture, ref rect, intPtr, WindowWidth * 4);

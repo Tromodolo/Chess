@@ -22,7 +22,7 @@
         internal bool GameEnded;
         internal GameResult Result;
 
-        //rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+        // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
         /*
          * A FEN record defines a particular game position, all in one text line and using only the ASCII character set. A text file with only FEN data records should use the filename extension .fen.[4]
            A FEN record contains six fields, each separated by a space. The fields are as follows:[5]
